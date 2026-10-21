@@ -16,6 +16,8 @@ export type MusicCheckpoint = {
    */
   track?: MusicTrack;
   savedAt?: number;
+  /** The listener closed the player: the next start restores nothing. */
+  closed?: boolean;
 };
 
 const DB_NAME = "compass-music-session";

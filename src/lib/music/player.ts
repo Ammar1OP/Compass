@@ -399,7 +399,7 @@ export function initializeMusic(): Promise<void> {
       // recent track is the honest fallback: the queue top is arbitrary and would resume a song
       // the listener did not choose, which is how one miss became a permanent wrong resume.
       const recovered =
-        restoredIndex < 0 ? (saved?.track ?? bootstrap.recents[0] ?? null) : null;
+        restoredIndex < 0 && !saved?.closed ? (saved?.track ?? bootstrap.recents[0] ?? null) : null;
       const queue = recovered
         ? [
             recovered,
@@ -1314,6 +1314,12 @@ export async function closeMusicPlayer(): Promise<void> {
       duration: 0,
       error: null,
     });
+    // Closing has to outlive a restart. saveMusicCheckpoint skips an empty player, so the last
+    // checkpoint (or the recents fallback) brought the song back, and announced it to the
+    // system media controls, every time the app opened.
+    const closed: MusicCheckpoint = { closed: true, savedAt: Date.now() };
+    writeCheckpointToDb(closed);
+    writeMusicPreference(SESSION_KEY, JSON.stringify(closed));
     if (typeof window !== "undefined")
       window.dispatchEvent(new Event("compass:music-player-closed"));
   } catch (error) {

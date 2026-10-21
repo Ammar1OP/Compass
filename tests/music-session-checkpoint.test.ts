@@ -44,3 +44,18 @@ test("a checkpoint with no timestamp still loses to one that has a newer stamp",
   const stamped = { key: "a", position: 90, savedAt: 5 };
   assert.equal(newerCheckpoint(unstamped, stamped), stamped);
 });
+
+test("closing the player is a newer checkpoint than the song it closed", () => {
+  const playing = { key: "youtube:a", track: { id: "a" } as never, savedAt: 1_000 };
+  const closed = { closed: true, savedAt: 2_000 };
+  assert.equal(newerCheckpoint(playing, closed), closed);
+  assert.equal(newerCheckpoint(closed, playing), closed);
+});
+
+test("a closed player restores nothing on the next start", async () => {
+  const { readFileSync } = await import("node:fs");
+  const player = readFileSync(new URL("../src/lib/music/player.ts", import.meta.url), "utf8");
+  const close = player.slice(player.indexOf("export async function closeMusicPlayer"));
+  assert.match(close.slice(0, close.indexOf("\n}\n")), /closed: true/, "closing writes a closed checkpoint");
+  assert.match(player, /restoredIndex < 0 && !saved\?\.closed/, "a closed checkpoint skips the recents fallback");
+});
